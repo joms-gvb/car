@@ -3,6 +3,12 @@
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <fcntl.h>
+#include <errno.h>
+
+static struct {
+	int valid;
+	unsigned char byte;
+} pushback = {0, 0};
 
 void cls()
 {
@@ -47,33 +53,52 @@ void print_bg(int wid)
 	putchar(0x0A);
 }
 
-char getch()
-{
-	struct termios oldt, newt;
-	char ch;
-	tcgetattr(STDIN_FILENO, &oldt);
-	newt = oldt;
-	newt.c_lflag &= ~(ICANON | ECHO);
-	tcsetattr(STDIN_FILENO, TCSANOW, &newt);
-	ch = getchar();
-	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-	return ch;
-}
 
 int kbhit(void)
 {
-	struct termios oldt, newt;
-	char ch;
+	unsigned char ch;
 	int oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-	fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK);
+	if(oldf == -1)
+		return 0;
+	if (fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK) == -1)
+		return 0;
 
-	if (read(STDIN_FILENO, &ch, 1) > 0) {
-		ungetc(ch, stdin);
+	size_t r = read(STDIN_FILENO, &ch, 1);
+	if ((int)r > 0) {
+		pushback.byte = ch;
+		pushback.valid = 1;
+		fcntl(STDIN_FILENO, F_SETFL, oldf);
 		return 1;
 	}
 
+
 	fcntl(STDIN_FILENO, F_SETFL, oldf);
 	return 0;
+}
+
+
+
+int getch()
+{
+	struct termios oldt, newt;
+	unsigned char ch;
+	ssize_t r;
+	if (pushback.valid) {
+		pushback.valid = 0;
+		return (int)pushback.byte;
+	}
+	if (tcgetattr(STDIN_FILENO, &oldt) == -1)
+		return -1;
+	newt = oldt;
+	newt.c_lflag &= ~(ICANON | ECHO);
+	if (tcsetattr(STDIN_FILENO, TCSANOW, &newt) == -1)
+		return -1;
+	r = read(STDIN_FILENO, &ch, 1);
+
+	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
+	if(r == 1)
+		return (int)ch;
+	return -1;
 }
 
 	
@@ -87,22 +112,32 @@ int main()
 	const int max_sleep = 600000;
 	const int min_sleep = 10000;
 
+	
+
 	for( ;; ) {
 		cls();
 		print_car(pos, wheel);
 		print_bg(wid + 10);
 		wheel ^= 1;
 		if(kbhit()) {
-			char ch = getch();
-			if (ch == 'f' || ch == '+')
-				sleep_time = (sleep_time > 100000) ? sleep_time - 10000 : sleep_time;
-			else if(ch == 's' ||ch == '-')
-				sleep_time += 10000;
-			else if(ch == 'q')
-				break;
+			int ch = getch();
+			if (ch != -1) {
+				if (ch == 'f' || ch == '+')
+					sleep_time -= sleep_time;
+				else if(ch == 's' ||ch == '-')
+					sleep_time += 10000;
+				else if(ch == 'q')
+					break;
+
+				if (sleep_time < min_sleep)
+					sleep_time = min_sleep;
+				if (sleep_time > max_sleep)
+					sleep_time = max_sleep;
+			}
 		}
 		printf("sleep_time\t%d\n", sleep_time);
-		usleep(sleep_time);
+		fflush(stdout);
+		usleep((useconds_t)sleep_time);
 		pos++;
 		if (pos > wid)
 			pos = 0;
