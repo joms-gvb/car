@@ -1,3 +1,10 @@
+/*
+ * Copyright (c) 2026 joms-gvb
+ * SPDX-License-Identifier: MIT
+ *
+ * Distributed under the MIT License. See the LICENSE file for details.
+ */
+
 #include <stdio.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
