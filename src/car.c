@@ -6,16 +6,50 @@
  */
 
 #include <stdio.h>
+#include <stdlib.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <termios.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <time.h>
+
+struct color  {
+	int cc;
+	int sr;
+} color = {0, 0};
 
 static struct {
 	int valid;
 	unsigned char byte;
 } pushback = {0, 0};
+
+int rrange(int min, int max)
+{
+	return rand() % (max - min + 1) + min;
+}
+
+int can_see_on_black(int cc)
+{
+	switch (cc) {
+	case 16:
+		return cc + 1;
+	case 232:
+		return cc + 3;
+	}
+	return cc;
+}
+
+void sr_color(struct color *cc)
+{
+	if(cc->sr == 1) {
+		cc->sr = 0;
+		printf("\x1b[00m");
+	} else if (cc->sr == 0) {
+		printf("\x1b[38;5;%dm", cc->cc);
+		cc->sr = 1;
+	}
+}
 
 void cls()
 {
@@ -31,7 +65,7 @@ void cpos(int pos)
 void print_car(int pos, int wheel)
 {
 	cpos(pos);
-	printf("   __\n");
+	printf("   ___\n");
 	cpos(pos);
     	printf(" _|_R_|__\n");
 	cpos(pos);
@@ -108,7 +142,13 @@ int getch()
 	return -1;
 }
 
-	
+int rand_color()
+{
+	int cc = rrange(1, 255);
+	int tmp = can_see_on_black(cc);
+	return tmp;
+}
+
 
 int main()
 {
@@ -119,11 +159,16 @@ int main()
 	const int max_sleep = 600000;
 	const int min_sleep = 10000;
 
-	
+	srand(time(NULL));
+	struct color cc;
+	cc.sr = 0;
+	cc.cc = rand_color();
 
 	for( ;; ) {
 		cls();
+		sr_color(&cc);
 		print_car(pos, wheel);
+		sr_color(&cc);
 		print_bg(wid + 10);
 		wheel ^= 1;
 		if(kbhit()) {
