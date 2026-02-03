@@ -23,12 +23,12 @@ tcc: $(TARGET)
 clang: CC = clang
 clang: $(TARGET)
 
-win: CC = x86_64-w64-mingw32-gcc
-win: $(TARGET)
+#win: CC = x86_64-w64-mingw32-gcc
+#win: $(TARGET)
 
 clean:
 	rm -f $(TARGET)
-	rm -f $(TARGET).exe
+#	rm -f $(TARGET).exe
 	rm -rf $(BIN_DIR)
 
 .PHONY: all clean $(BIN_DIR)
