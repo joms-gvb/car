@@ -14,15 +14,15 @@
 #include <errno.h>
 #include <time.h>
 
-struct color  {
+struct color {
 	int cc;
 	int sr;
-} color = {0, 0};
+} color = { 0, 0 };
 
 static struct {
 	int valid;
 	unsigned char byte;
-} pushback = {0, 0};
+} pushback = { 0, 0 };
 
 int rrange(int min, int max)
 {
@@ -42,7 +42,7 @@ int can_see_on_black(int cc)
 
 void sr_color(struct color *cc)
 {
-	if(cc->sr == 1) {
+	if (cc->sr == 1) {
 		cc->sr = 0;
 		printf("\x1b[00m");
 	} else if (cc->sr == 0) {
@@ -58,7 +58,7 @@ void cls()
 
 void cpos(int pos)
 {
-	for(int i = 0; i < pos; i++)
+	for (int i = 0; i < pos; i++)
 		putchar(0x20);
 }
 
@@ -67,7 +67,7 @@ void print_car(int pos, int wheel)
 	cpos(pos);
 	printf("   ___\n");
 	cpos(pos);
-    	printf(" _|_R_|__\n");
+	printf(" _|_R_|__\n");
 	cpos(pos);
 	printf(" |_______|\n");
 	cpos(pos);
@@ -76,7 +76,6 @@ void print_car(int pos, int wheel)
 		printf(" o-o   o-o\n");
 	else
 		printf(" O-O   O-O\n");
-
 
 }
 
@@ -89,17 +88,16 @@ int get_tty_wid()
 
 void print_bg(int wid)
 {
-	for(int i = 0; i < wid; i++) 
+	for (int i = 0; i < wid; i++)
 		printf("%c", (i % 2 == 0) ? '-' : ' ');
 	putchar(0x0A);
 }
-
 
 int kbhit(void)
 {
 	unsigned char ch;
 	int oldf = fcntl(STDIN_FILENO, F_GETFL, 0);
-	if(oldf == -1)
+	if (oldf == -1)
 		return 0;
 	if (fcntl(STDIN_FILENO, F_SETFL, oldf | O_NONBLOCK) == -1)
 		return 0;
@@ -112,12 +110,9 @@ int kbhit(void)
 		return 1;
 	}
 
-
 	fcntl(STDIN_FILENO, F_SETFL, oldf);
 	return 0;
 }
-
-
 
 int getch()
 {
@@ -137,7 +132,7 @@ int getch()
 	r = read(STDIN_FILENO, &ch, 1);
 
 	tcsetattr(STDIN_FILENO, TCSANOW, &oldt);
-	if(r == 1)
+	if (r == 1)
 		return (int)ch;
 	return -1;
 }
@@ -148,7 +143,6 @@ int rand_color()
 	int tmp = can_see_on_black(cc);
 	return tmp;
 }
-
 
 int main()
 {
@@ -164,21 +158,21 @@ int main()
 	cc.sr = 0;
 	cc.cc = rand_color();
 
-	for( ;; ) {
+	for (;;) {
 		cls();
 		sr_color(&cc);
 		print_car(pos, wheel);
 		sr_color(&cc);
 		print_bg(wid + 10);
 		wheel ^= 1;
-		if(kbhit()) {
+		if (kbhit()) {
 			int ch = getch();
 			if (ch != -1) {
 				if (ch == 'f' || ch == '+')
 					sleep_time -= sleep_time;
-				else if(ch == 's' ||ch == '-')
+				else if (ch == 's' || ch == '-')
 					sleep_time += 10000;
-				else if(ch == 'q')
+				else if (ch == 'q')
 					break;
 
 				if (sleep_time < min_sleep)
@@ -189,12 +183,12 @@ int main()
 		}
 		printf("sleep_time\t%d\n", sleep_time);
 		fflush(stdout);
-		usleep((useconds_t)sleep_time);
+		usleep((useconds_t) sleep_time);
 		pos++;
 		if (pos > wid)
 			pos = 0;
 	}
-	
+
 	fflush(stdout);
 	return 0;
 }
