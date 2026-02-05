@@ -169,7 +169,7 @@ int main()
 			int ch = getch();
 			if (ch != -1) {
 				if (ch == 'f' || ch == '+')
-					sleep_time -= sleep_time;
+					sleep_time -= 10000;
 				else if (ch == 's' || ch == '-')
 					sleep_time += 10000;
 				else if (ch == 'q')
