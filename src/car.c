@@ -64,7 +64,9 @@ void cpos(int pos)
 
 void print_car(int pos, int wheel)
 {
+	int state = wheel;
 	cpos(pos);
+
 	printf("   ___\n");
 	cpos(pos);
 	printf(" _|_R_|__\n");
@@ -78,6 +80,34 @@ void print_car(int pos, int wheel)
 		printf(" O-O   O-O\n");
 
 }
+
+void print_person(int pos, int wheel_state)
+{
+	cpos(pos);
+	printf("   O   \n");
+	cpos(pos);
+	printf("  /|\\  \n");
+	cpos(pos);
+	switch (wheel_state) {
+	case 0:
+		printf("  | |  \n");
+		break;
+	case 1:
+		printf("   / \\ \n");
+		break;
+	case 2:
+		printf("  | |  \n");
+		break;
+	case 3:
+		printf("  \\ /  \n");
+		break;
+	case 4:
+		printf("  | |  \n");
+		break;
+	}
+}
+
+
 
 int get_tty_wid()
 {
@@ -144,10 +174,25 @@ int rand_color()
 	return tmp;
 }
 
-int main()
+int main(int argc, char **argv)
 {
+	int flags, opt;
+	int an_type = 1;
+	while ((opt = getopt(argc, argv, "ph")) != EOF) {
+		switch (opt) {
+		case 'p':
+			an_type = 2;
+			break;
+		case 'h':
+			fprintf(stderr,
+				"Usage: %s [-p] prints a walking person insted of the car, [-h] help\n",
+				argv[0]);
+			exit(EXIT_FAILURE);
+		}
+	}
 	int wid = get_tty_wid() - 10;
 	int wheel = 0;
+	int wheel_state = 0;
 	int sleep_time = 200000;
 	int pos = 0;
 	const int max_sleep = 600000;
@@ -161,10 +206,17 @@ int main()
 	for (;;) {
 		cls();
 		sr_color(&cc);
+		if (an_type == 1) {
 		print_car(pos, wheel);
 		sr_color(&cc);
 		print_bg(wid + 10);
 		wheel ^= 1;
+		} else if (an_type == 2) {
+			print_person(pos, wheel_state);
+			sr_color(&cc);
+			print_bg(wid + 8);
+			wheel_state = (wheel_state + 1) % 5;
+		}
 		if (kbhit()) {
 			int ch = getch();
 			if (ch != -1) {
