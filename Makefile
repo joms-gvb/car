@@ -18,8 +18,7 @@ $(BIN_DIR):
 $(TARGET): $(SRCS) | $(BIN_DIR)
 	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
-tcc: CC = tcc
-tcc: $(TARGET)
+
 
 clang: CC = clang
 clang: $(TARGET)

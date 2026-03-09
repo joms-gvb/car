@@ -11,7 +11,7 @@
 ## Supported compilers
 - gcc (default)
 - clang
-- tcc
+
 
 ## Dependencies
 
@@ -20,6 +20,7 @@ This project requires the following libraries and headers:
 - **C Standard Libraries**
   - `<stdio.h>`
   - `<stdlib.h>`
+  - `<string.h>`
   - `<unistd.h>`
   - `<sys/ioctl.h>`
   - `<termios.h>`
