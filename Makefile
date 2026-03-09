@@ -1,5 +1,6 @@
 CC = gcc
-CFLAGS = -Wall -Wextra -O3
+CFLAGS = -Wall -Wextra -O3 -pthread -I/usr/include/SDL2 -D_REENTRANT
+LDFLAGS = -lSDL2 
 
 SRC_DIR = src
 BIN_DIR = bin
@@ -15,7 +16,7 @@ $(BIN_DIR):
 	mkdir -p $(BIN_DIR)
 
 $(TARGET): $(SRCS) | $(BIN_DIR)
-	$(CC) $(CFLAGS) -o $@ $^
+	$(CC) $(CFLAGS) -o $@ $^ $(LDFLAGS)
 
 tcc: CC = tcc
 tcc: $(TARGET)
