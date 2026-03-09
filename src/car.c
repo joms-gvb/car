@@ -3,6 +3,12 @@
  * SPDX-License-Identifier: MIT
  *
  * Distributed under the MIT License. See the LICENSE file for details.
+ *
+ *
+ * Audio file: motorseamless07.wav
+ * Source: Z1ph101d - OpenGameArt
+ * License: CC0 (public domain)
+ * URL: https://opengameart.org/content/some-sounds-0
  */
 
 #include <stdio.h>
@@ -13,6 +19,17 @@
 #include <fcntl.h>
 #include <errno.h>
 #include <time.h>
+#include <signal.h>
+#include <pthread.h>
+#include <SDL2/SDL.h>
+
+volatile sig_atomic_t keep_running = 1;
+
+void sig_handle(int sig)
+{
+	if(sig == SIGINT)
+		keep_running = 0;
+}
 
 struct color {
 	int cc;
@@ -23,6 +40,52 @@ static struct {
 	int valid;
 	unsigned char byte;
 } pushback = { 0, 0 };
+
+void audio_init()
+{
+	if (SDL_Init(SDL_INIT_AUDIO) < 0) {
+		fprintf(stderr, "Could not initialize SDL2: %s\n", SDL_GetError());
+		exit(1);
+	}
+}
+
+void *play_sound(void *sound_file)
+{
+	SDL_AudioSpec wav_spec;
+	Uint32 wav_len;
+	Uint8 *wav_buffer;
+	SDL_AudioDeviceID device;
+
+	if (SDL_LoadWAV(sound_file, &wav_spec, &wav_buffer, &wav_len) == NULL) {
+		fprintf(stderr, "Could not open WAV file: %s\n", SDL_GetError());
+		exit(1);
+	}
+
+	device = SDL_OpenAudioDevice(NULL, 0, &wav_spec, NULL, 0);
+
+	if (device == 0) {
+		fprintf(stderr, "Could not open audio device: %s\n", SDL_GetError());
+		SDL_FreeWAV(wav_buffer);
+		exit(1);
+	}
+
+	while (keep_running) {
+		SDL_ClearQueuedAudio(device);
+		SDL_QueueAudio(device, wav_buffer, wav_len);
+		SDL_PauseAudioDevice(device, 0);
+		
+		Uint32 start_time = SDL_GetTicks();
+		while (keep_running && SDL_GetQueuedAudioSize(device) > 0)
+			SDL_Delay(50);
+
+		SDL_ClearQueuedAudio(device);
+	}
+	
+
+	SDL_CloseAudioDevice(device);
+	SDL_FreeWAV(wav_buffer);
+	return NULL;
+}
 
 int rrange(int min, int max)
 {
@@ -176,6 +239,11 @@ int rand_color()
 
 int main(int argc, char **argv)
 {
+
+	signal(SIGINT, sig_handle);
+	audio_init();
+	pthread_t audio_thread;
+	const char *car_sound_file = "../sounds/motorseamless07.wav";
 	int flags, opt;
 	int an_type = 1;
 	while ((opt = getopt(argc, argv, "ph")) != EOF) {
@@ -190,6 +258,8 @@ int main(int argc, char **argv)
 			exit(EXIT_FAILURE);
 		}
 	}
+
+	pthread_create(&audio_thread, NULL, play_sound, (void*)car_sound_file);
 	int wid = get_tty_wid() - 10;
 	int wheel = 0;
 	int wheel_state = 0;
@@ -198,12 +268,15 @@ int main(int argc, char **argv)
 	const int max_sleep = 600000;
 	const int min_sleep = 10000;
 
+
 	srand(time(NULL));
 	struct color cc;
 	cc.sr = 0;
 	cc.cc = rand_color();
 
-	for (;;) {
+	
+
+	while (keep_running) {
 		cls();
 		sr_color(&cc);
 		if (an_type == 1) {
@@ -224,8 +297,10 @@ int main(int argc, char **argv)
 					sleep_time -= 10000;
 				else if (ch == 's' || ch == '-')
 					sleep_time += 10000;
-				else if (ch == 'q')
+				else if (ch == 'q') {
+					keep_running = 0;
 					break;
+				}
 
 				if (sleep_time < min_sleep)
 					sleep_time = min_sleep;
@@ -242,5 +317,9 @@ int main(int argc, char **argv)
 	}
 
 	fflush(stdout);
+
+	printf("Exiting... Thank you for watching!\n");
+	pthread_join(audio_thread, NULL);
+	SDL_Quit();
 	return 0;
 }
