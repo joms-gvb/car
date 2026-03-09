@@ -9,6 +9,12 @@
  * Source: Z1ph101d - OpenGameArt
  * License: CC0 (public domain)
  * URL: https://opengameart.org/content/some-sounds-0
+ * 
+ * Audio file: Footsteps.wav
+ * Author: spookymodem
+ * Source: OpenGameArt
+ * License: CC-BY 3.0
+ * URL: https://opengameart.org/content/footsteps
  */
 
 #include <stdio.h>
@@ -265,6 +271,7 @@ int main(int argc, char **argv)
 	audio_init();
 	pthread_t audio_thread;
 	const char *car_sound_file = "../sounds/motorseamless07.wav";
+	const char *step_sound_file = "../sounds/Footsteps.wav";
 	int opt;
 	int an_type = 1;
 	while ((opt = getopt(argc, argv, "ph")) != EOF) {
@@ -280,7 +287,11 @@ int main(int argc, char **argv)
 		}
 	}
 
-	pthread_create(&audio_thread, NULL, play_sound, (void*)car_sound_file);
+	if (an_type == 1)
+		pthread_create(&audio_thread, NULL, play_sound, (void*)car_sound_file);
+	else if (an_type == 2)
+		pthread_create(&audio_thread, NULL, play_sound, (void*)step_sound_file);
+
 	int wid = get_tty_wid() - 10;
 	int wheel = 0;
 	int wheel_state = 0;
