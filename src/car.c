@@ -13,6 +13,7 @@
 
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include <unistd.h>
 #include <sys/ioctl.h>
 #include <termios.h>
@@ -49,6 +50,24 @@ void audio_init()
 	}
 }
 
+void log_playtime(const char *sound_file, Uint32 start_time, Uint32 elapsed_time)
+{
+	FILE *log_file = fopen("playback.log", "a");
+	if (log_file == NULL) {
+		fprintf(stderr, "Could not open log file for writing.\n");
+		return;
+	}
+
+	time_t now = time(NULL);
+	char *timestamp = ctime(&now);
+	if (timestamp != NULL)
+		timestamp[strcspn(timestamp, "\n")] = 0;
+
+	fprintf(log_file, "[ %s ] Played '%s': Start Time: %u ms, Elapsed Time: %u ms\n", 
+			timestamp, sound_file, start_time, elapsed_time);
+	fclose(log_file);
+}
+
 void *play_sound(void *sound_file)
 {
 	SDL_AudioSpec wav_spec;
@@ -75,8 +94,10 @@ void *play_sound(void *sound_file)
 		SDL_PauseAudioDevice(device, 0);
 		
 		Uint32 start_time = SDL_GetTicks();
-		while (keep_running && SDL_GetQueuedAudioSize(device) > 0)
+		while (keep_running && SDL_GetQueuedAudioSize(device) > 0) {
+			log_playtime(sound_file, start_time, SDL_GetTicks() - start_time);
 			SDL_Delay(50);
+		}
 
 		SDL_ClearQueuedAudio(device);
 	}
@@ -86,6 +107,7 @@ void *play_sound(void *sound_file)
 	SDL_FreeWAV(wav_buffer);
 	return NULL;
 }
+
 
 int rrange(int min, int max)
 {
@@ -127,7 +149,6 @@ void cpos(int pos)
 
 void print_car(int pos, int wheel)
 {
-	int state = wheel;
 	cpos(pos);
 
 	printf("   ___\n");
@@ -244,7 +265,7 @@ int main(int argc, char **argv)
 	audio_init();
 	pthread_t audio_thread;
 	const char *car_sound_file = "../sounds/motorseamless07.wav";
-	int flags, opt;
+	int opt;
 	int an_type = 1;
 	while ((opt = getopt(argc, argv, "ph")) != EOF) {
 		switch (opt) {
